@@ -1,0 +1,10 @@
+---
+description: Agency-wide project rules (canonical)
+alwaysApply: true
+---
+
+# Project Rules
+
+The canonical rules for this project live in [AGENTS.md](mdc:AGENTS.md).
+
+Read that file before doing any work. If a rule needs to change, update `AGENTS.md` directly — never edit this file. When referenced by the user, the AI should always treat `AGENTS.md` as the source of truth over anything in `.cursor/rules/`.

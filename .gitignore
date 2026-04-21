@@ -1,0 +1,13 @@
+# Keep Cursor rules tracked, but ignore per-user Cursor state
+.cursor/*
+!.cursor/rules/
+
+# Common ignores (teammates can extend)
+node_modules/
+.env
+.env.local
+.DS_Store
+dist/
+build/
+coverage/
+*.log
