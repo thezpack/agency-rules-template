@@ -9,13 +9,19 @@
 
 - **Agency:** Revex
 - **Project name:** `<FILL IN>`
-- **Platform:** `<React web | React Native (Expo) | Node service | Other>`
-- **Stack:** `<e.g. TypeScript, Next.js, Tailwind, Zustand, TanStack Query>`
-- **Deployed to:** `<e.g. Vercel | EAS Build → TestFlight + Play Store | Railway>`
+- **Surfaces:** `<[web, mobile] | [web] | [mobile]>` — which surfaces this project ships. A project with only a mobile app has `[mobile]`; a SaaS dashboard is `[web]`; a product with both is `[web, mobile]`.
 - **Repo:** `<github.com/.../...>`
 - **Linear workspace:** `<linear.app/...>`
+- **Supabase project ref:** `<FILL IN — e.g. abcdefghijklmn>` (from Supabase dashboard URL)
 
-When a rule below is tagged `(Web only)` or `(React Native only)`, apply only the one matching the Platform above and ignore the other.
+**Agency-standard stack** (inherited — override in this file only with a concrete reason):
+- **Web:** TypeScript + Next.js (App Router) + Tailwind + shadcn/ui, deployed to Vercel
+- **Mobile:** TypeScript + Expo (managed) + Expo Router + NativeWind, built with EAS
+- **Backend (both):** Supabase (Postgres + Auth + Edge Functions + Storage)
+- **State & data:** Zustand + TanStack Query
+- **Forms & validation:** React Hook Form + Zod
+
+When a rule below is tagged `(Web only)` or `(Mobile only)`, apply only the ones matching the declared Surfaces above and ignore the others. Rules tagged `(Supabase)` apply on both surfaces whenever Supabase is in use.
 
 ---
 
@@ -122,18 +128,21 @@ When a rule below is tagged `(Web only)` or `(React Native only)`, apply only th
 
 ### Web only
 
-- **Framework:** `<FILL IN — e.g. Next.js (App Router)>`
-- **Styling:** `<FILL IN — e.g. Tailwind | Vanilla Extract | CSS Modules>`
-- **Routing:** handled by framework
+- **Framework:** Next.js (App Router)
+- **Styling:** Tailwind CSS
+- **Component library:** shadcn/ui (copy-in, not a dependency). Add components via `npx shadcn@latest add <component>`.
+- **Routing:** Next.js App Router (file-based)
 - **Icons:** Lucide React
+- **Supabase client:** `@supabase/ssr` for server components + middleware; `@supabase/supabase-js` for client components
 
-### React Native only
+### Mobile only
 
 - **Framework:** Expo (managed workflow)
-- **Routing:** Expo Router
-- **Styling:** `<FILL IN — e.g. NativeWind | Restyle | StyleSheet>`
-- **Storage:** MMKV (preferred) or AsyncStorage
+- **Routing:** Expo Router (file-based)
+- **Styling:** NativeWind (Tailwind for RN)
+- **Storage:** MMKV (preferred for hot paths) or AsyncStorage
 - **Icons:** Lucide React Native
+- **Supabase client:** `@supabase/supabase-js` with the Expo SecureStore adapter for session persistence
 
 ### Forbidden (both platforms)
 
@@ -153,25 +162,26 @@ When a rule below is tagged `(Web only)` or `(React Native only)`, apply only th
 - **No emoji in production UI.** Use the icon library.
 - **Accessibility is non-negotiable.** Every interactive element needs a label. Color alone never conveys state.
 
-### Styling (Web — skip if React Native)
+### Styling (Web only)
 
-Styling system: **`<FILL IN — e.g. Tailwind>`**
+Styling system: **Tailwind CSS** + **shadcn/ui**
 
-- Tokens: `<FILL IN — e.g. tailwind.config.ts>`
-- Component styles: co-located with components
+- Tokens: `tailwind.config.ts` — extend with project-specific colors/spacing in `theme.extend`
+- Component styles: co-located with components; primitives come from `components/ui/` (shadcn)
+- Use CSS variables for themeable tokens (shadcn convention — `--background`, `--foreground`, etc.)
 - **Forbidden:**
   - Inline styles (`style={{ }}`)
   - Arbitrary values (`text-[14px]`, `bg-[#ff0000]`) — use tokens
-  - Any CSS framework other than the one declared above
+  - Any CSS framework other than Tailwind
 
-### Styling (React Native — skip if Web)
+### Styling (Mobile only)
 
-Styling system: **`<FILL IN — e.g. NativeWind>`**
+Styling system: **NativeWind** (Tailwind for React Native)
 
-- Tokens: `<FILL IN — e.g. tailwind.config.js with NativeWind preset>`
-- **Density-independent pixels** — no `px` units (RN is already DP).
+- Tokens: `tailwind.config.js` with NativeWind preset — share token names with web where possible
+- **Density-independent pixels** — no `px` units (RN is already DP)
 - **Forbidden:**
-  - Inline `style={{ }}` object literals in JSX — define in StyleSheet or use className
+  - Inline `style={{ }}` object literals in JSX — use `className` (NativeWind) or `StyleSheet.create`
   - Web-only CSS properties (`cursor`, `hover`, etc.)
   - Absolute positioning without a documented reason
 
@@ -227,32 +237,56 @@ If the task involves new UI, start with **impeccable**. If it involves finishing
 
 ## Testing
 
-- **Framework:** `<FILL IN — e.g. Vitest | Jest | jest-expo>`
-- **Library:** `<FILL IN — e.g. @testing-library/react | @testing-library/react-native>`
+- **Framework (Web):** Vitest
+- **Framework (Mobile):** jest-expo
+- **Library (Web):** @testing-library/react
+- **Library (Mobile):** @testing-library/react-native
+- **E2E (Web, optional):** Playwright when a flow is critical enough to justify it
+- **E2E (Mobile, optional):** Maestro for smoke flows; don't over-invest until shipping publicly
 - **Coverage expectation:** critical business logic must have tests; UI smoke tests for key flows.
 - Write tests **before or alongside** the feature, not as an afterthought.
 - **Don't mock what you own.** Test real behavior when possible.
+- **Mobile-specific:** test on a real device in backgrounded/killed states for any feature that uses background tasks, notifications, or cold-launch navigation. Simulator behavior is deceptively reliable.
 
 ---
 
-## Deployment
+## Deployment & Preview
 
-### Web (skip if React Native)
+Apply only the subsections matching the declared Surfaces in Identity.
 
-- Staging: `<FILL IN URL>`
-- Production: `<FILL IN URL>`
-- Auto-deploys on merge to `main`: `<yes | no>`
-- Never deploy directly to production without staging verification.
+### Web (only if `web` in Surfaces)
 
-### React Native (skip if Web)
+**Host:** Vercel (GitHub-connected — no manual deploys)
 
-- Staging: internal TestFlight / Internal Testing track
-- Production: public App Store + Play Store
-- Build service: EAS Build
-- OTA updates: Expo Updates
-- Native code changes (not JS-only) require a new store submission.
+- Staging URL: `<FILL IN>`
+- Production URL: `<FILL IN>`
+- Auto-deploy `main` → production
+- Auto-deploy every PR → preview URL (Vercel bot posts it to the PR)
+- Domains and environment variables managed in Vercel dashboard
+- Never deploy directly to production without staging verification
+- Never use `vercel --prod` from local — all production deploys go through a merged PR
 
-#### iOS Signing & Build (React Native only)
+**Environment variables (Vercel):**
+- `NEXT_PUBLIC_*` vars are baked into the client bundle — never put secrets there
+- Server-only secrets (Supabase service role, Stripe secret, etc.) live in Vercel without the `NEXT_PUBLIC_` prefix
+- Every env var that exists in Vercel must also exist as a key in `.env.example` (value redacted)
+
+### Mobile (only if `mobile` in Surfaces)
+
+**Build service:** EAS Build (Expo)
+
+- Dev builds: `eas build --profile development` — install once per device, then JS hot-reloads
+- **PR preview:** push the PR branch to an EAS Update channel (`preview-pr-NNN`). Teammates/stakeholders open the dev build, scan the EAS QR, and load the preview without rebuilding
+- **Staging:** merge to `staging` branch → `eas build --profile preview --auto-submit` → TestFlight + Play Internal Testing
+- **Production:** merge to `main` → `eas build --profile production --auto-submit` → App Store + Play Store
+- **OTA updates:** Expo Updates for JS-only changes. Native code, Info.plist, `app.config.ts`, or new native modules require a full store submission — document which path applies in every PR
+
+**Environment variables (EAS):**
+- Build-time secrets: `eas secret` or `.env` referenced by EAS
+- Runtime config: `expo-constants` / `app.config.ts` for non-secret values
+- Never commit secrets. `.env` is in `.gitignore` from commit one.
+
+#### iOS Signing & Build (Mobile only)
 
 iOS signing fails in non-obvious ways and eats days of debugging time. These are defaults that prevent the most common failures — challenge them if you have a concrete reason (see "Rules here are defaults, not laws" in AI Agent Rules).
 
@@ -294,6 +328,46 @@ iOS signing fails in non-obvious ways and eats days of debugging time. These are
 - Authorization happens on the server, never only in the client.
 - SQL queries use parameterized queries or an ORM — never string interpolation.
 - Dependencies: review any new package with low download counts or a single maintainer.
+- **Supabase service role key** never reaches the client, the app bundle, or the web browser. It lives only in Edge Functions, server components, or route handlers. Any variable prefixed `NEXT_PUBLIC_` or inlined into a mobile binary is public.
+
+---
+
+## Supabase
+
+Supabase is the default backend on every project. Rules below apply whenever the project uses it.
+
+### Schema & migrations
+
+- All schema changes live in `supabase/migrations/` as timestamped SQL files, committed to git
+- Never edit production schema via the Supabase dashboard. Generate the migration locally (`supabase db diff -f <name>`), review it, commit, then apply via `supabase db push`
+- Generated TypeScript types live in `types/database.ts` (or equivalent) — regenerate after every migration via `supabase gen types typescript` and commit alongside the migration
+
+### Row Level Security (RLS)
+
+- **RLS is on from day one.** Any table without RLS is a bug, not a feature. Tests must fail if a table ships without policies.
+- Policies are explicit and scoped. Prefer `auth.uid() = user_id` style over broad `USING (true)` policies.
+- When writing a policy, include a comment explaining the intended access pattern so future changes don't silently widen it.
+
+### Edge Functions
+
+- Server-side logic that needs the service role (cross-user queries, privileged writes, webhook handlers, external API calls with secrets) belongs in Edge Functions — not in the client
+- Deploy via `supabase functions deploy <name>`
+- Environment variables live in `supabase secrets set` — never hardcoded
+- Every function validates its input with Zod before touching the database
+
+### Auth
+
+- Use Supabase Auth (email/password, OAuth providers, magic link) — don't roll custom auth
+- Session persistence: `@supabase/ssr` on web (cookie-based), `SecureStore` adapter on mobile
+- Auth state fetches (session, profile) must have explicit timeouts (5–10 seconds). A hanging session fetch on a flaky connection blocks the entire app.
+- Gate the app on `authLoading` only. Profile loading is supplementary — blocking render on profile causes blank screens.
+- `onAuthStateChange` handlers must not clear user state on `TOKEN_REFRESHED` events (they fire hourly and would cause transient logouts).
+
+### Storage
+
+- Use Supabase Storage for user-uploaded files (avatars, attachments, etc.)
+- Bucket access is controlled via RLS on `storage.objects`
+- Signed URLs for private buckets; never expose the service role to generate them client-side
 
 ---
 
@@ -311,3 +385,4 @@ iOS signing fails in non-obvious ways and eats days of debugging time. These are
 
 - `YYYY-MM-DD` — Initial template copy — setup
 - `2026-04-21` — Added "rules are defaults, not laws" meta-rule + iOS Signing & Build subsection (credentials, build numbers, reproducibility, entitlements, secrets) — template maintainer
+- `2026-04-21` — Locked in agency stack defaults: Surfaces array (web / mobile / both), Next.js + Tailwind + shadcn/ui (web), Expo + NativeWind (mobile), Vercel (web host), EAS (mobile host), Supabase (backend). Added Deployment & Preview workflow section and full Supabase conventions section (schema, RLS, Edge Functions, Auth, Storage). — template maintainer
