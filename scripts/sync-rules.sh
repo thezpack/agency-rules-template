@@ -98,17 +98,31 @@ for f in "${rules[@]}"; do
   fi
 done
 
-# ─── scripts/setup-dev-env.sh — refresh ─────────────────────────────────────
+# ─── scripts/ — refresh both setup and sync scripts ─────────────────────────
 mkdir -p scripts
 curl -fsSL "$TEMPLATE_RAW/scripts/setup-dev-env.sh" -o scripts/setup-dev-env.sh
-chmod +x scripts/setup-dev-env.sh
+curl -fsSL "$TEMPLATE_RAW/scripts/sync-rules.sh" -o scripts/sync-rules.sh
+chmod +x scripts/setup-dev-env.sh scripts/sync-rules.sh
+
+# ─── .gitignore — keep .cursor/rules tracked, ignore rest of .cursor ────────
+if [ -f .gitignore ]; then
+  if ! grep -q "^\.cursor/\*" .gitignore; then
+    printf '\n# Agency rules template (keep .cursor/rules tracked)\n.cursor/*\n!.cursor/rules/\n' >> .gitignore
+    echo "📝 Updated .gitignore (keep .cursor/rules tracked)"
+  fi
+else
+  printf '# Agency rules template (keep .cursor/rules tracked)\n.cursor/*\n!.cursor/rules/\n' > .gitignore
+  echo "📝 Created .gitignore"
+fi
 
 echo
-echo "✅ Sync complete."
+echo "✅ Rules installed."
 echo
-echo "Review the changes:"
-echo "   git diff"
+echo "Next steps:"
+echo "  1. Open AGENTS.md and fill in the Identity section (Platform, Stack, Deployed to, etc.)"
+echo "  2. Run: ./scripts/setup-dev-env.sh   (one-time, installs design skills for Claude Code)"
+echo "  3. Commit:"
+echo "       git add AGENTS.md CLAUDE.md .cursor/rules scripts .gitignore"
+echo "       git commit -m 'chore: install agency rules'"
 echo
-echo "Then commit:"
-echo "   git add AGENTS.md CLAUDE.md .cursor/rules scripts/setup-dev-env.sh"
-echo "   git commit -m 'chore: sync agency rules from template'"
+echo "To pull future template updates: ./scripts/sync-rules.sh"

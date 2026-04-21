@@ -17,32 +17,38 @@ Canonical rules, AI agent instructions, and design-skill guidance that live in *
     └── sync-rules.sh             Pulls latest template into an existing project.
 ```
 
-## For new projects
+## For new projects (one-liner)
 
-### Option 1 — GitHub template (recommended)
+Scaffold your project however you want (`create-next-app`, `create-expo-app`, `create-vite`, whatever), then from inside the project run:
 
-This repo is marked as a **GitHub template**. To start a new project:
+```bash
+curl -fsSL https://raw.githubusercontent.com/thezpack/agency-rules-template/main/scripts/sync-rules.sh | bash
+```
+
+That single command:
+
+- Drops `AGENTS.md`, `CLAUDE.md`, and `.cursor/rules/*.mdc` into the project
+- Installs `scripts/sync-rules.sh` and `scripts/setup-dev-env.sh`
+- Updates `.gitignore` so `.cursor/rules/` stays tracked but transient `.cursor/*` state doesn't
+
+Then:
+
+```bash
+# Fill in the Identity section of AGENTS.md (Platform, Stack, Deployed to, etc.)
+./scripts/setup-dev-env.sh   # one-time per machine — installs design skills for Claude Code
+git add AGENTS.md CLAUDE.md .cursor/rules scripts .gitignore
+git commit -m "chore: install agency rules"
+```
+
+## For new projects (GitHub template alternative)
+
+This repo is also marked as a **GitHub template** if you prefer to start with the template files already in place:
 
 ```bash
 gh repo create <org>/<new-project> --template thezpack/agency-rules-template --private
 ```
 
-Or use the "Use this template" button on GitHub.
-
-Then:
-
-```bash
-cd <new-project>
-# Fill in the stack details in AGENTS.md
-# (Identity section, Dependencies section, Design System section)
-./scripts/setup-dev-env.sh  # installs design skills globally (first time only per machine)
-```
-
-### Option 2 — Manual copy into an existing project
-
-```bash
-curl -fsSL https://raw.githubusercontent.com/thezpack/agency-rules-template/main/scripts/sync-rules.sh | bash
-```
+Or click "Use this template" on GitHub. Then scaffold your framework inside that clone (`npx create-next-app .`, etc.).
 
 ## For teammates joining a project
 
