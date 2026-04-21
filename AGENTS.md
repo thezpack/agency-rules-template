@@ -37,6 +37,7 @@ When a rule below is tagged `(Web only)` or `(React Native only)`, apply only th
 - **Prefer editing existing files** over creating new ones. Don't create new files unless the task clearly needs one.
 - **Don't proactively create documentation** (`.md`, READMEs) unless asked.
 - If a task seems to violate rules in this file, **stop and ask** before proceeding.
+- **Rules here are defaults, not laws.** If you find a concrete reason a rule is wrong for this project (deprecated API, better library, new platform constraint), surface the conflict and propose an update rather than silently working around it. Never ignore a rule without flagging.
 - When updating this file, add an entry to **Changelog** at the bottom with the date and reason.
 
 ---
@@ -251,6 +252,38 @@ If the task involves new UI, start with **impeccable**. If it involves finishing
 - OTA updates: Expo Updates
 - Native code changes (not JS-only) require a new store submission.
 
+#### iOS Signing & Build (React Native only)
+
+iOS signing fails in non-obvious ways and eats days of debugging time. These are defaults that prevent the most common failures — challenge them if you have a concrete reason (see "Rules here are defaults, not laws" in AI Agent Rules).
+
+**Credentials**
+
+- Use `credentialsSource: local` in the production profile of `eas.json`. EAS server-managed credentials drift from App Store Connect and cause signing failures that are nearly impossible to debug from the ASC side.
+- Never commit `.p8`, `.p12`, `.mobileprovision`, or Google Play service account JSON. Store them in a team vault (1Password, AWS Secrets Manager) and pull locally.
+- Rotate the Apple distribution certificate only when it actually expires. Early rotation invalidates every provisioning profile depending on it.
+
+**Build numbers & versioning**
+
+- Set `autoIncrement: true` on the production build profile in `eas.json`. Manual `buildNumber` / `versionCode` bumps get forgotten and App Store Connect rejects duplicate binaries.
+- `version` in `app.json` / `app.config.ts` is user-facing semver. `buildNumber` (iOS) and `versionCode` (Android) are monotonically increasing integers — never reset.
+- The app config file (`app.json` / `app.config.ts` / `eas.json`) is versioned in git alongside code changes. Drift between config and deployed binary is a real bug source.
+
+**Reproducibility**
+
+- Set `requireCommit: true` in `eas.json`. Builds without a matching git SHA are unbisectable when something breaks in production.
+- Native-only changes (Info.plist, `app.config.ts`, native modules, entitlements) require a new store submission. JS-only changes can ship via Expo Updates OTA. Document which one applies in every PR that touches native config.
+
+**Entitlements & capabilities**
+
+- Declare entitlements in `app.config.ts` / `app.json` — never edit the provisioning profile manually in Xcode. Manual edits get overwritten on the next EAS build.
+- Adding a capability (push notifications, background modes, associated domains, sign-in-with-Apple) requires regenerating the provisioning profile. Enable the capability in App Store Connect first, then rerun `eas build`.
+- Bundle identifier changes are effectively a new app — avoid once shipped.
+
+**Secrets at build time**
+
+- `.env` files are in `.gitignore` from the first commit.
+- Build-time secrets (API keys injected into the binary, Sentry DSN, analytics keys) live in `eas secret` or EAS environment variables — never in `app.config.ts` as plain strings.
+
 ---
 
 ## Security
@@ -277,3 +310,4 @@ If the task involves new UI, start with **impeccable**. If it involves finishing
 <!-- The AI appends here when rules are updated. Format: YYYY-MM-DD — reason — who -->
 
 - `YYYY-MM-DD` — Initial template copy — setup
+- `2026-04-21` — Added "rules are defaults, not laws" meta-rule + iOS Signing & Build subsection (credentials, build numbers, reproducibility, entitlements, secrets) — template maintainer
