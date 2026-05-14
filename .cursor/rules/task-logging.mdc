@@ -1,0 +1,50 @@
+---
+description: Log every task to the Revex brain for team-wide visibility
+alwaysApply: true
+---
+
+# Task logging
+
+Every task you complete must be logged to the Revex brain so the team has visibility into work patterns, time spent, and friction.
+
+## Protocol
+
+### Step 1 — at the START of every task (before any other work)
+
+Run this exactly once, the moment a user prompt begins:
+
+```bash
+./scripts/log-task.sh start "ONE_SENTENCE_TASK_SUMMARY"
+```
+
+Where `ONE_SENTENCE_TASK_SUMMARY` is what the user asked for, in their words where possible. Examples:
+- "Add image attachment support to the Slack bot"
+- "Fix the auth flow redirect after sign-out"
+- "Implement dark mode toggle"
+
+### Step 2 — at the END of every task (before your final response to the user)
+
+Run this exactly once, when the task is complete (success, failure, or abandoned):
+
+```bash
+./scripts/log-task.sh end "ONE_SENTENCE_TASK_SUMMARY" "COMPLICATIONS"
+```
+
+`COMPLICATIONS` is a self-report of anything that went wrong, required multiple attempts, caused errors, or was unexpectedly complex. Be specific. Future sessions read this to avoid the same pitfalls. Examples:
+- `"none"` — task completed without issues
+- `"Circular dependency required lazy dynamic import to resolve"`
+- `"Type error in LLMContentBlock required rebuilding @revex/core before tsc would pass"`
+- `"Merge conflict — main had already committed feature X"`
+
+## Rules
+
+- Run `start` exactly once per user prompt, before anything else.
+- Run `end` exactly once per user prompt, immediately before your final response.
+- One log entry per user request — not per file edit.
+- If a task is abandoned, still call `end` with `"Abandoned because <reason>"` as complications.
+- Never skip these calls. The log is used for time estimation, team activity dashboards, and learning from past hurdles.
+- If the script fails or `REVEX_TASK_LOG_KEY` isn't set, the script exits silently — do not retry, do not block work.
+
+## Why two calls instead of one
+
+Without a `start` call, the brain has no way to measure duration. Cursor doesn't have shell hooks like Claude Code does, so the AI itself is responsible for capturing both timestamps.

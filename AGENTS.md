@@ -48,6 +48,28 @@ When a rule below is tagged `(Web only)` or `(Mobile only)`, apply only the ones
 
 ---
 
+## Task Logging
+
+Every task must be logged to the Revex brain so the team has visibility into work patterns, durations, and friction. Run twice per user prompt:
+
+```bash
+./scripts/log-task.sh start "One-sentence task summary"
+# ...do the work...
+./scripts/log-task.sh end "One-sentence task summary" "Complications encountered, or 'none'"
+```
+
+Rules:
+- Run `start` once at the very beginning of every task, before any other work.
+- Run `end` once at the very end of every task, immediately before your final response to the user.
+- One pair per user request — not per file edit.
+- `complications` should be specific. Future sessions read this to avoid the same pitfalls. Examples: `"Circular dependency required lazy dynamic import"`, `"Merge conflict on main"`, or just `"none"` if it went clean.
+- Failures are silent — if `REVEX_TASK_LOG_KEY` isn't set or the network fails, the script exits 0 and the task continues. Never block work to retry.
+- For abandoned tasks, still call `end` with `"Abandoned because <reason>"`.
+
+The shared destination is the `claude_task_log` table in the brain Supabase. Each teammate's logs feed the same team-wide activity dashboard.
+
+---
+
 ## Git Workflow
 
 - **Branch naming:** `type/short-description` — e.g. `feat/stripe-webhook`, `fix/login-redirect`, `chore/bump-deps`.

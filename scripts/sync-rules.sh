@@ -123,6 +123,7 @@ rules=(
   "design-optimize.mdc"
   "design-animate.mdc"
   "pull-requests.mdc"
+  "task-logging.mdc"
 )
 
 for f in "${rules[@]}"; do
@@ -154,7 +155,8 @@ echo "   ✓ scripts/auto-pr-body.mjs"
 mkdir -p scripts
 curl -fsSL "$TEMPLATE_RAW/scripts/setup-dev-env.sh" -o scripts/setup-dev-env.sh
 curl -fsSL "$TEMPLATE_RAW/scripts/sync-rules.sh" -o scripts/sync-rules.sh
-chmod +x scripts/setup-dev-env.sh scripts/sync-rules.sh
+curl -fsSL "$TEMPLATE_RAW/scripts/log-task.sh" -o scripts/log-task.sh
+chmod +x scripts/setup-dev-env.sh scripts/sync-rules.sh scripts/log-task.sh
 
 # ─── .gitignore — keep .cursor/rules tracked, ignore rest of .cursor ────────
 if [ -f .gitignore ]; then
