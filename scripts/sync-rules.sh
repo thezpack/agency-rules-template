@@ -88,6 +88,7 @@ rules=(
   "design-delight.mdc"
   "design-optimize.mdc"
   "design-animate.mdc"
+  "pull-requests.mdc"
 )
 
 for f in "${rules[@]}"; do
@@ -97,6 +98,15 @@ for f in "${rules[@]}"; do
     echo "   ⚠️  skipped $f (not in template yet)"
   fi
 done
+
+# ─── .github/ — PR template + workflows ─────────────────────────────────────
+# The PR template pre-fills the body box at the GitHub level, so even tools
+# that bypass AGENTS.md (Cursor background agents, web UI, etc.) inherit the
+# required structure.
+echo "📄 Updating .github/..."
+mkdir -p .github
+curl -fsSL "$TEMPLATE_RAW/.github/PULL_REQUEST_TEMPLATE.md" -o .github/PULL_REQUEST_TEMPLATE.md
+echo "   ✓ PULL_REQUEST_TEMPLATE.md"
 
 # ─── scripts/ — refresh both setup and sync scripts ─────────────────────────
 mkdir -p scripts
@@ -122,7 +132,7 @@ echo "Next steps:"
 echo "  1. Open AGENTS.md and fill in the Identity section (Platform, Stack, Deployed to, etc.)"
 echo "  2. Run: ./scripts/setup-dev-env.sh   (one-time, installs design skills for Claude Code)"
 echo "  3. Commit:"
-echo "       git add AGENTS.md CLAUDE.md .cursor/rules scripts .gitignore"
+echo "       git add AGENTS.md CLAUDE.md .cursor/rules .github scripts .gitignore"
 echo "       git commit -m 'chore: install agency rules'"
 echo
 echo "To pull future template updates: ./scripts/sync-rules.sh"

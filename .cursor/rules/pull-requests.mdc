@@ -1,0 +1,21 @@
+---
+description: Pull request rules — apply when creating any PR
+alwaysApply: true
+---
+
+# Pull Request Rules
+
+Every pull request you create — whether from chat, background agent, or any other path — MUST include a body that follows the structure in [AGENTS.md](mdc:AGENTS.md):
+
+- **Summary** — 1–3 bullets on what changed
+- **Why** — business reason or Linear issue link (`Closes REV-XXX`)
+- **Test plan** — checklist of what to verify
+- **Screenshots** — for any UI change
+
+If the project has `.github/PULL_REQUEST_TEMPLATE.md`, populate the placeholders in that template rather than writing a separate body.
+
+**Never open a PR with an empty body.** An empty body is a defect — it requires the reviewer to read the diff blind and prevents Linear from auto-linking. If you cannot fill the sections meaningfully, ask the user before opening the PR rather than opening it with placeholders.
+
+Branch naming: `type/short-description` (e.g. `feat/stripe-webhook`). If a Linear issue exists, use Linear's "Copy git branch name" so the issue auto-links.
+
+Title format: imperative, under 70 characters. Example: `Add Stripe webhook signature verification`.
