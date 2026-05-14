@@ -99,14 +99,22 @@ for f in "${rules[@]}"; do
   fi
 done
 
-# ─── .github/ — PR template + workflows ─────────────────────────────────────
-# The PR template pre-fills the body box at the GitHub level, so even tools
-# that bypass AGENTS.md (Cursor background agents, web UI, etc.) inherit the
-# required structure.
+# ─── .github/ — PR template + workflows + scripts ──────────────────────────
+# Three layers of defense for PR descriptions:
+#   1. PULL_REQUEST_TEMPLATE.md pre-fills the body box at PR creation
+#   2. auto-pr-body.yml workflow detects empty bodies post-creation and
+#      auto-generates from the diff + AGENTS.md (requires ANTHROPIC_API_KEY
+#      as a repo secret)
+#   3. The Cursor pull-requests.mdc rule reminds the AI to fill bodies when
+#      it has the chance
 echo "📄 Updating .github/..."
-mkdir -p .github
+mkdir -p .github .github/workflows .github/scripts
 curl -fsSL "$TEMPLATE_RAW/.github/PULL_REQUEST_TEMPLATE.md" -o .github/PULL_REQUEST_TEMPLATE.md
 echo "   ✓ PULL_REQUEST_TEMPLATE.md"
+curl -fsSL "$TEMPLATE_RAW/.github/workflows/auto-pr-body.yml" -o .github/workflows/auto-pr-body.yml
+echo "   ✓ workflows/auto-pr-body.yml"
+curl -fsSL "$TEMPLATE_RAW/.github/scripts/auto-pr-body.mjs" -o .github/scripts/auto-pr-body.mjs
+echo "   ✓ scripts/auto-pr-body.mjs"
 
 # ─── scripts/ — refresh both setup and sync scripts ─────────────────────────
 mkdir -p scripts
@@ -131,7 +139,9 @@ echo
 echo "Next steps:"
 echo "  1. Open AGENTS.md and fill in the Identity section (Platform, Stack, Deployed to, etc.)"
 echo "  2. Run: ./scripts/setup-dev-env.sh   (one-time, installs design skills for Claude Code)"
-echo "  3. Commit:"
+echo "  3. Add ANTHROPIC_API_KEY as a repo secret if you want auto-PR-body generation:"
+echo "       gh secret set ANTHROPIC_API_KEY --repo \$(git config --get remote.origin.url | sed -E 's|.+github.com[/:]([^/]+/[^.]+).*|\\1|')"
+echo "  4. Commit:"
 echo "       git add AGENTS.md CLAUDE.md .cursor/rules .github scripts .gitignore"
 echo "       git commit -m 'chore: install agency rules'"
 echo

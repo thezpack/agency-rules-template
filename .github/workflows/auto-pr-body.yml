@@ -1,0 +1,39 @@
+name: Auto-generate PR body
+
+# Fires on every PR open and on every push to the PR branch.
+# Skips PRs that already have a substantive body — so well-written PRs
+# from Nicolas/Claude Code/Cursor chat are left alone. Only fills in
+# empty or template-only bodies (Sura's BG Agent PRs, web UI PRs, etc.).
+#
+# Requires repository secret: ANTHROPIC_API_KEY
+
+on:
+  pull_request:
+    types: [opened, synchronize]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  auto-body:
+    runs-on: ubuntu-latest
+    if: github.actor != 'dependabot[bot]'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+
+      - name: Run auto-body
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_BODY: ${{ github.event.pull_request.body }}
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          REPO: ${{ github.repository }}
+        run: node .github/scripts/auto-pr-body.mjs
