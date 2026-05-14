@@ -42,21 +42,55 @@ echo
 if [ -f AGENTS.md ]; then
   echo "📄 Updating AGENTS.md (preserving project-specific sections)..."
 
-  # Extract preserved sections from existing file
-  preserved_context=$(awk '/^## Project-Specific Context/,/^## [^P]/' AGENTS.md | sed '$d')
-  preserved_changelog=$(awk '/^## Changelog/,0' AGENTS.md)
-
-  # Fetch new template
+  # Fetch new template alongside the existing file so we can splice with Node.
   curl -fsSL "$TEMPLATE_RAW/AGENTS.md" -o AGENTS.md.new
 
-  # Splice preserved sections back in
-  awk -v ctx="$preserved_context" -v log="$preserved_changelog" '
-    /^## Project-Specific Context/ { print ctx; skip=1; next }
-    /^## Changelog/ { print log; skip=2; next }
-    skip==1 && /^## [^P]/ { skip=0 }
-    skip==2 { next }
-    skip==0 { print }
-  ' AGENTS.md.new > AGENTS.md
+  # Splice in Node. Avoids the BSD-vs-GNU awk multi-line `-v` pitfall that
+  # silently destroyed AGENTS.md on macOS before this rewrite.
+  node --input-type=module -e '
+    import { readFileSync, writeFileSync } from "node:fs";
+
+    const oldContent = readFileSync("AGENTS.md", "utf-8");
+    const newContent = readFileSync("AGENTS.md.new", "utf-8");
+
+    // Extract a section from "## Heading" up to (but not including) the next "## " heading.
+    function extract(text, headingRegex) {
+      const m = text.match(headingRegex);
+      if (!m) return null;
+      const start = m.index;
+      const rest = text.slice(start + m[0].length);
+      const nextHeader = rest.match(/\n## /);
+      const end = nextHeader ? start + m[0].length + nextHeader.index : text.length;
+      return text.slice(start, end).replace(/\s*$/, "");
+    }
+
+    // Replace a section in `text` with `replacement`. If the section is missing
+    // from `text`, append at the end. If `replacement` is null/empty, leave the
+    // template section alone.
+    function replace(text, headingRegex, replacement) {
+      if (!replacement) return text;
+      const m = text.match(headingRegex);
+      if (!m) return text.trimEnd() + "\n\n" + replacement + "\n";
+      const start = m.index;
+      const rest = text.slice(start + m[0].length);
+      const nextHeader = rest.match(/\n## /);
+      const end = nextHeader ? start + m[0].length + nextHeader.index : text.length;
+      return text.slice(0, start) + replacement + (end < text.length ? "\n\n" + text.slice(end).trimStart() : "\n");
+    }
+
+    const HEAD_CTX = /^## Project-Specific Context\b.*$/m;
+    const HEAD_LOG = /^## Changelog\b.*$/m;
+
+    const preservedCtx = extract(oldContent, HEAD_CTX);
+    const preservedLog = extract(oldContent, HEAD_LOG);
+
+    let merged = newContent;
+    merged = replace(merged, HEAD_CTX, preservedCtx);
+    merged = replace(merged, HEAD_LOG, preservedLog);
+
+    writeFileSync("AGENTS.md", merged);
+    console.log(`   ✓ Spliced (preserved ${preservedCtx?.length ?? 0} chars context, ${preservedLog?.length ?? 0} chars changelog)`);
+  '
 
   rm AGENTS.md.new
 else
