@@ -85,6 +85,9 @@ The shared destination is the `claude_task_log` table in the brain Supabase. Eac
 
 ### Before opening
 
+**Confirm with the user before opening a PR.** Opening a PR signals the Linear issue is ready for review — but the user may still have unfinished work on that ticket. Never open a PR until the user explicitly confirms the issue is complete. (Merging needs explicit approval too — see Review rules.)
+
+- [ ] User has confirmed the Linear issue is complete
 - [ ] Tests pass locally
 - [ ] Type-check passes (`npm run type-check` or `tsc --noEmit`)
 - [ ] Lint passes (`npm run lint`)
@@ -106,6 +109,12 @@ The shared destination is the `claude_task_log` table in the brain Supabase. Eac
 - **Squash merge only** (no merge commits).
 - Never merge your own PR unless the reviewer explicitly approves.
 - Delete the branch after merge.
+
+### After opening — checks & review comments
+
+- **Wait for GitHub checks (CI/CD) to pass before moving on.** A pending or failing check means the work isn't finished — don't start the next item or the next Linear issue until checks are green. If a check fails, fix it on the same PR before continuing.
+- **Reply to review comments once you've addressed them.** When you push a fix in response to a PR comment, leave a reply on that specific comment describing what changed. Don't resolve a thread silently — the reviewer needs the response to verify the fix.
+- **Comment on any PR you re-open.** If you re-open a PR (or reopen and fix one that was previously closed or merged), leave a comment explaining why it was re-opened and what changed, so the PR history stays clear.
 
 ---
 
@@ -408,3 +417,4 @@ Supabase is the default backend on every project. Rules below apply whenever the
 - `YYYY-MM-DD` — Initial template copy — setup
 - `2026-04-21` — Added "rules are defaults, not laws" meta-rule + iOS Signing & Build subsection (credentials, build numbers, reproducibility, entitlements, secrets) — template maintainer
 - `2026-04-21` — Locked in agency stack defaults: Surfaces array (web / mobile / both), Next.js + Tailwind + shadcn/ui (web), Expo + NativeWind (mobile), Vercel (web host), EAS (mobile host), Supabase (backend). Added Deployment & Preview workflow section and full Supabase conventions section (schema, RLS, Edge Functions, Auth, Storage). — template maintainer
+- `2026-05-15` — Added PR workflow rules: confirm with the user before opening a PR (was opening PRs before the ticket was done), wait for CI/CD checks to pass before moving on, reply to review comments once addressed, comment on any re-opened PR — template maintainer
