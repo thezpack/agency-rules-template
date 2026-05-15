@@ -25,17 +25,17 @@ Scaffold your project however you want (`create-next-app`, `create-expo-app`, `c
 curl -fsSL https://raw.githubusercontent.com/thezpack/agency-rules-template/main/scripts/sync-rules.sh | bash
 ```
 
-That single command:
+That single command does **rules + skills** in one shot:
 
 - Drops `AGENTS.md`, `CLAUDE.md`, and `.cursor/rules/*.mdc` into the project
 - Installs `scripts/sync-rules.sh` and `scripts/setup-dev-env.sh`
 - Updates `.gitignore` so `.cursor/rules/` stays tracked but transient `.cursor/*` state doesn't
+- Installs agency-standard Claude Code skills globally (skip with `REVEX_SKIP_SKILLS=1`)
 
 Then:
 
 ```bash
 # Fill in the Identity section of AGENTS.md (Platform, Stack, Deployed to, etc.)
-./scripts/setup-dev-env.sh   # one-time per machine — installs design skills for Claude Code
 git add AGENTS.md CLAUDE.md .cursor/rules scripts .gitignore
 git commit -m "chore: install agency rules"
 ```
@@ -59,10 +59,17 @@ Every Revex project has these files. The AI reads them automatically. Your one-t
 git clone <project-repo>
 cd <project-repo>
 
-# Install agency-standard design skills globally (one-time per machine, not per-project)
+# Install agency-standard skills globally (one-time per machine, not per-project)
 ./scripts/setup-dev-env.sh
 
 # Restart Claude Code to pick up skills
+```
+
+If the project predates the template and is missing the rule files, run the
+one-liner instead — it installs both rules and skills:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/thezpack/agency-rules-template/main/scripts/sync-rules.sh | bash
 ```
 
 **Cursor users:** no setup required — the design rules in `.cursor/rules/` load automatically.

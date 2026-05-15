@@ -171,13 +171,29 @@ fi
 
 echo
 echo "✅ Rules installed."
+
+# ─── Skills — install agency-standard Claude Code skills globally ───────────
+# This makes the one-liner a true one-stop onboarding command: rules + skills.
+# Skip with REVEX_SKIP_SKILLS=1 (e.g. in CI, or on machines that only need the
+# tracked rule files). The skill install is global + idempotent, not per-repo.
+if [ "${REVEX_SKIP_SKILLS:-0}" = "1" ]; then
+  echo "⏭️  Skipping skill install (REVEX_SKIP_SKILLS=1)."
+else
+  echo
+  echo "🧠 Installing agency-standard Claude Code skills..."
+  if bash scripts/setup-dev-env.sh; then
+    :
+  else
+    echo "   ⚠️  Skill install failed — rerun ./scripts/setup-dev-env.sh manually."
+  fi
+fi
+
 echo
 echo "Next steps:"
 echo "  1. Open AGENTS.md and fill in the Identity section (Platform, Stack, Deployed to, etc.)"
-echo "  2. Run: ./scripts/setup-dev-env.sh   (one-time, installs design skills for Claude Code)"
-echo "  3. Add ANTHROPIC_API_KEY as a repo secret if you want auto-PR-body generation:"
+echo "  2. Add ANTHROPIC_API_KEY as a repo secret if you want auto-PR-body generation:"
 echo "       gh secret set ANTHROPIC_API_KEY --repo \$(git config --get remote.origin.url | sed -E 's|.+github.com[/:]([^/]+/[^.]+).*|\\1|')"
-echo "  4. Commit:"
+echo "  3. Commit:"
 echo "       git add AGENTS.md CLAUDE.md .cursor/rules .github scripts .gitignore"
 echo "       git commit -m 'chore: install agency rules'"
 echo
