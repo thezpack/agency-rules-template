@@ -1,0 +1,43 @@
+# Typecheck — universal CI gate across Revex projects.
+#
+# Runs `npm run type-check` if defined in package.json, otherwise falls back
+# to `npx tsc --noEmit`. Required for every tier (minimal / standard / critical).
+# See AGENTS.md → "Required CI Checks" for the tier definitions.
+
+name: typecheck
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: typecheck-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  typecheck:
+    name: typecheck
+    # Skip in the template repo itself — there's no Node project here, only
+    # the workflow file to copy into downstream projects via sync-rules.sh.
+    if: github.repository != 'thezpack/agency-rules-template'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Type-check
+        run: |
+          if npm run | grep -qE '^\s*type-check\s*$'; then
+            npm run type-check
+          else
+            npx --no-install tsc --noEmit
+          fi

@@ -10,6 +10,7 @@
 - **Agency:** Revex
 - **Project name:** `<FILL IN>`
 - **Surfaces:** `<[web, mobile] | [web] | [mobile]>` — which surfaces this project ships. A project with only a mobile app has `[mobile]`; a SaaS dashboard is `[web]`; a product with both is `[web, mobile]`.
+- **Tier:** `<minimal | standard | critical>` — declares which set of CI checks must be green before merge. See [Required CI Checks](#required-ci-checks) for what each tier mandates. Default is `standard`. Use `critical` for any project with paying customers, public traffic, or revenue impact. Use `minimal` only for prototypes, internal scripts, and Lovable bootstraps.
 - **Repo:** `<github.com/.../...>`
 - **Linear workspace:** `<linear.app/...>`
 - **Supabase project ref:** `<FILL IN — e.g. abcdefghijklmn>` (from Supabase dashboard URL)
@@ -115,6 +116,68 @@ The shared destination is the `claude_task_log` table in the brain Supabase. Eac
 - **Wait for GitHub checks (CI/CD) to pass before moving on.** A pending or failing check means the work isn't finished — don't start the next item or the next Linear issue until checks are green. If a check fails, fix it on the same PR before continuing.
 - **Reply to review comments once you've addressed them.** When you push a fix in response to a PR comment, leave a reply on that specific comment describing what changed. Don't resolve a thread silently — the reviewer needs the response to verify the fix.
 - **Comment on any PR you re-open.** If you re-open a PR (or reopen and fix one that was previously closed or merged), leave a comment explaining why it was re-opened and what changed, so the PR history stays clear.
+
+---
+
+## Required CI Checks
+
+Every project declares a **Tier** in its Identity section. The tier defines which checks must pass before a PR can merge. Don't merge a PR while a required check is failing or pending — that's the whole point of declaring a tier.
+
+| Check | `minimal` | `standard` *(default)* | `critical` |
+|---|:-:|:-:|:-:|
+| **Typecheck** (`tsc --noEmit`) | ✅ | ✅ | ✅ |
+| **Lint** (`eslint` / project linter) | ✅ | ✅ | ✅ |
+| **Build** (production build succeeds) | — | ✅ | ✅ |
+| **Unit tests** (if any exist) | — | ✅ | ✅ |
+| **E2E smoke** (Playwright / Maestro) | — | — | ✅ |
+| **Coverage threshold** (project-defined %) | — | — | ✅ |
+
+**Why tiers and not a single mandate:** stacks differ. Forcing Playwright on a Node CLI service creates skipped or false-failure jobs, both worse than no check. Tiers give every project a meaningful floor while letting customer-facing surfaces opt into the heavier gates.
+
+### When to escalate a tier
+
+- A project graduates to `critical` the moment it has paying customers, public traffic, or revenue impact. Open a PR that changes the Tier line in AGENTS.md and adds the missing workflows.
+- A `minimal` project should rarely stay `minimal` for long. Treat it as a prototype flag, not a permanent state.
+
+### Starter workflows
+
+The template ships three universal workflows under `.github/workflows/`:
+
+- `typecheck.yml` — runs `tsc --noEmit` (or the `type-check` script if defined)
+- `lint.yml` — runs the project's `lint` npm script
+- `build.yml` — runs the project's `build` npm script
+
+These cover `standard` for any TypeScript + npm project. The `unit tests` check uses the same `build.yml` job pattern — add a `test.yml` alongside if/when the project has tests. E2E and coverage workflows are project-specific and not shipped by the template; add them when the project moves to `critical`.
+
+If your project uses a non-npm toolchain (Bun, pnpm, Turbo, etc.), adapt the starter workflows in place and document the override in Project-Specific Context.
+
+### Enabling branch protection
+
+Workflows that aren't marked as **Required** in GitHub branch protection are advisory only — a developer can still merge a red PR. After the workflows land on `main`, run this once per repo to make them required:
+
+```bash
+REPO=$(git config --get remote.origin.url | sed -E 's|.+github.com[/:]([^/]+/[^.]+).*|\1|')
+gh api -X PUT "repos/$REPO/branches/main/protection" \
+  --input - <<'JSON'
+{
+  "required_status_checks": {
+    "strict": true,
+    "contexts": ["typecheck", "lint", "build"]
+  },
+  "enforce_admins": false,
+  "required_pull_request_reviews": { "required_approving_review_count": 1 },
+  "restrictions": null
+}
+JSON
+```
+
+Add `e2e` and `coverage` to `contexts` for `critical` projects. Confirm the check names match the `name:` field at the top of each workflow file — GitHub matches by job name, not file name.
+
+### Tier definitions in plain English
+
+- **`minimal`** — "Don't ship code that doesn't compile or pass lint." For prototypes, internal scripts, Lovable bootstraps, demo repos. Cheap to enforce, catches the worst regressions.
+- **`standard`** — "Don't ship code that doesn't build or fails existing tests." The default for production-leaning projects (Node services, internal dashboards, brain-style backends). Adds Build + Tests on top of `minimal`.
+- **`critical`** — "Don't ship code that breaks user-facing flows or drops coverage below the bar." For customer-facing surfaces. Adds E2E smoke + coverage gate on top of `standard`.
 
 ---
 
@@ -418,3 +481,4 @@ Supabase is the default backend on every project. Rules below apply whenever the
 - `2026-04-21` — Added "rules are defaults, not laws" meta-rule + iOS Signing & Build subsection (credentials, build numbers, reproducibility, entitlements, secrets) — template maintainer
 - `2026-04-21` — Locked in agency stack defaults: Surfaces array (web / mobile / both), Next.js + Tailwind + shadcn/ui (web), Expo + NativeWind (mobile), Vercel (web host), EAS (mobile host), Supabase (backend). Added Deployment & Preview workflow section and full Supabase conventions section (schema, RLS, Edge Functions, Auth, Storage). — template maintainer
 - `2026-05-15` — Added PR workflow rules: confirm with the user before opening a PR (was opening PRs before the ticket was done), wait for CI/CD checks to pass before moving on, reply to review comments once addressed, comment on any re-opened PR — template maintainer
+- `2026-06-03` — Added Required CI Checks section with three tiers (minimal / standard / critical) declared per-project in the Identity section. Shipped starter workflows for typecheck/lint/build under .github/workflows/, plus a one-shot `gh api` snippet to enable branch protection. Background: behavioral rules around "wait for green checks" were a no-op on repos with no checks. — template maintainer

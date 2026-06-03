@@ -78,18 +78,27 @@ if [ -f AGENTS.md ]; then
       return text.slice(0, start) + replacement + (end < text.length ? "\n\n" + text.slice(end).trimStart() : "\n");
     }
 
+    // Identity is per-project metadata (project name, surfaces, tier, repo,
+    // linear workspace, supabase ref). Filled in once at install time and
+    // never reverted on sync. If the template gains a new Identity field, the
+    // project will need to add it manually — but that beats wiping every
+    // project'\''s filled values on every sync, which was the pre-2026-06-03
+    // behavior.
+    const HEAD_ID  = /^## Identity\b.*$/m;
     const HEAD_CTX = /^## Project-Specific Context\b.*$/m;
     const HEAD_LOG = /^## Changelog\b.*$/m;
 
+    const preservedId  = extract(oldContent, HEAD_ID);
     const preservedCtx = extract(oldContent, HEAD_CTX);
     const preservedLog = extract(oldContent, HEAD_LOG);
 
     let merged = newContent;
+    merged = replace(merged, HEAD_ID,  preservedId);
     merged = replace(merged, HEAD_CTX, preservedCtx);
     merged = replace(merged, HEAD_LOG, preservedLog);
 
     writeFileSync("AGENTS.md", merged);
-    console.log(`   ✓ Spliced (preserved ${preservedCtx?.length ?? 0} chars context, ${preservedLog?.length ?? 0} chars changelog)`);
+    console.log(`   ✓ Spliced (preserved ${preservedId?.length ?? 0} chars identity, ${preservedCtx?.length ?? 0} chars context, ${preservedLog?.length ?? 0} chars changelog)`);
   '
 
   rm AGENTS.md.new
@@ -150,6 +159,18 @@ curl -fsSL "$TEMPLATE_RAW/.github/workflows/auto-pr-body.yml" -o .github/workflo
 echo "   ✓ workflows/auto-pr-body.yml"
 curl -fsSL "$TEMPLATE_RAW/.github/scripts/auto-pr-body.mjs" -o .github/scripts/auto-pr-body.mjs
 echo "   ✓ scripts/auto-pr-body.mjs"
+
+# ─── Required-CI workflows ─────────────────────────────────────────────────
+# Universal gates declared in AGENTS.md → "Required CI Checks".
+# typecheck + lint apply to every tier. build applies to standard + critical
+# and can be deleted in minimal-tier projects (the workflow comment says so).
+# Always overwrite — these files are template-owned, not project-owned. Local
+# tweaks belong in a project-specific *.yml alongside, or in
+# Project-Specific Context with the rationale.
+for wf in typecheck.yml lint.yml build.yml; do
+  curl -fsSL "$TEMPLATE_RAW/.github/workflows/$wf" -o ".github/workflows/$wf"
+  echo "   ✓ workflows/$wf"
+done
 
 # ─── scripts/ — refresh both setup and sync scripts ─────────────────────────
 mkdir -p scripts
