@@ -21,6 +21,9 @@ concurrency:
 jobs:
   build:
     name: build
+    # Skip in the template repo itself — there's no Node project here, only
+    # the workflow file to copy into downstream projects via sync-rules.sh.
+    if: github.repository != 'thezpack/agency-rules-template'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
