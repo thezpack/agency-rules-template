@@ -1,0 +1,40 @@
+# Lint — universal CI gate across Revex projects.
+#
+# Runs `npm run lint`. Required for every tier (minimal / standard / critical).
+# See AGENTS.md → "Required CI Checks" for the tier definitions.
+
+name: lint
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: lint-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    name: lint
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: |
+          if npm run | grep -qE '^\s*lint\s*$'; then
+            npm run lint
+          else
+            echo "::error::No 'lint' script defined in package.json. Add one or remove this workflow (and downgrade the project tier in AGENTS.md if appropriate)."
+            exit 1
+          fi
