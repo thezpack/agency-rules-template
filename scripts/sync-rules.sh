@@ -179,14 +179,24 @@ curl -fsSL "$TEMPLATE_RAW/scripts/sync-rules.sh" -o scripts/sync-rules.sh
 curl -fsSL "$TEMPLATE_RAW/scripts/log-task.sh" -o scripts/log-task.sh
 chmod +x scripts/setup-dev-env.sh scripts/sync-rules.sh scripts/log-task.sh
 
-# ─── .gitignore — keep .cursor/rules tracked, ignore rest of .cursor ────────
+# ─── .gitignore — keep cursor rules tracked, ignore rest of .cursor ─────────
+# Two negations, not one. Newer projects use the `.cursor/rules/` directory of
+# .mdc files, but older ones (and any project set up before that convention)
+# carry a flat `.cursor/rules.md`. That flat file matches `.cursor/*` and is NOT
+# covered by `!.cursor/rules/`, so omitting the second negation silently ignores
+# a project's existing rules file — the exact file this script is meant to keep.
+GITIGNORE_BLOCK='# Agency rules template (keep cursor rules tracked)\n.cursor/*\n!.cursor/rules/\n!.cursor/rules.md\n'
 if [ -f .gitignore ]; then
   if ! grep -q "^\.cursor/\*" .gitignore; then
-    printf '\n# Agency rules template (keep .cursor/rules tracked)\n.cursor/*\n!.cursor/rules/\n' >> .gitignore
-    echo "📝 Updated .gitignore (keep .cursor/rules tracked)"
+    printf "\n$GITIGNORE_BLOCK" >> .gitignore
+    echo "📝 Updated .gitignore (keep cursor rules tracked)"
+  elif ! grep -q "^!\.cursor/rules\.md" .gitignore; then
+    # Block predates the flat-file negation — add just the missing line.
+    printf '!.cursor/rules.md\n' >> .gitignore
+    echo "📝 Updated .gitignore (added !.cursor/rules.md)"
   fi
 else
-  printf '# Agency rules template (keep .cursor/rules tracked)\n.cursor/*\n!.cursor/rules/\n' > .gitignore
+  printf "$GITIGNORE_BLOCK" > .gitignore
   echo "📝 Created .gitignore"
 fi
 
