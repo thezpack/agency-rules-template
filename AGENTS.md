@@ -248,6 +248,21 @@ Add `e2e` and `coverage` to `contexts` for `critical` projects. Confirm the chec
 
 ## Design System
 
+### Project design docs
+
+Some projects carry their own design and product documentation. **If any of
+these files exist, read them before implementing UI, workflows, components,
+pages, or features.** They describe this specific product and take precedence
+over both generated suggestions and the universal defaults below:
+
+- `docs/product-principles.md` — what the product is for, who uses it, what it optimizes for
+- `docs/design-rules.md` — UX philosophy, brand, interaction rules
+- `docs/design-system.md` — framework, tokens, component conventions
+
+Projects without these files fall through to the universal rules in this
+section. When a project has them, keep them as the source of truth and update
+them there — do not duplicate their contents into this file.
+
 ### Universal principles
 
 - **Tokens over raw values.** Never hardcode colors, spacing, or font sizes. Use the project's token definitions.
