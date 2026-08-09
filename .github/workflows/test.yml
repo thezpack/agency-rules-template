@@ -1,0 +1,49 @@
+# Test — CI gate for `standard` and `critical` tier projects.
+#
+# Runs `npm test`. See AGENTS.md → "Required CI Checks" for the tier definitions.
+#
+# Unlike build.yml, a missing `test` script is NOT an error here. The tier table
+# says "Unit tests (if any exist)" — a project with no tests yet is legitimate,
+# and failing its CI on that would push people to delete the workflow rather
+# than write tests. This job reports success and says so in the log instead.
+#
+# If this project is `minimal` tier, delete this file.
+
+name: test
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: test-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: test
+    # Skip in the template repo itself — there's no Node project here, only
+    # the workflow file to copy into downstream projects via sync-rules.sh.
+    if: github.repository != 'thezpack/agency-rules-template'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Test
+        run: |
+          if npm run | grep -qE '^\s*test\s*$'; then
+            npm test
+          else
+            echo "::notice::No 'test' script defined in package.json — nothing to run."
+            echo "This is not a failure: the tier table requires unit tests only if any exist."
+          fi

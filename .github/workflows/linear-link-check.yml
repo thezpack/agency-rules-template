@@ -1,0 +1,62 @@
+# Fails a PR that doesn't link a Linear issue, so the issue actually
+# auto-transitions on merge. A PR is considered linked when EITHER the branch
+# name contains a ticket id (use Linear's "Copy git branch name") OR the title
+# / body has a magic word — Closes / Fixes / Resolves TICKET-### (one per line,
+# never a range). Add the `no-ticket` label to bypass.
+#
+# TICKET_PREFIX below assumes the project's Linear team uses the `REV-` prefix.
+# Projects on a different Linear team must change it — the check silently passes
+# nothing and fails every PR otherwise.
+#
+# Advisory until made Required in branch protection (see AGENTS.md → Enabling
+# branch protection). Note that branch protection is unavailable on some GitHub
+# plans, in which case this check can never be more than advisory.
+
+name: linear-link-check
+
+on:
+  pull_request:
+    types: [opened, edited, synchronize, reopened, labeled, unlabeled]
+
+permissions:
+  contents: read
+  pull-requests: read
+
+env:
+  TICKET_PREFIX: REV
+
+jobs:
+  link:
+    # Explicit name so the status-check context matches the workflow name.
+    # Without it GitHub reports this check as "link" (the job key), and a
+    # branch-protection `contexts` entry of "linear-link-check" would silently
+    # never match — the check would look required and enforce nothing.
+    name: linear-link-check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/github-script@v7
+        with:
+          script: |
+            const pr = context.payload.pull_request;
+            const labels = (pr.labels || []).map((l) => l.name);
+            if (labels.includes('no-ticket')) {
+              core.info('Bypassed via the "no-ticket" label.');
+              return;
+            }
+            const prefix = process.env.TICKET_PREFIX || 'REV';
+            const branch = pr.head?.ref || '';
+            const text = `${pr.title || ''}\n${pr.body || ''}`;
+            const branchHasId = new RegExp(`${prefix}-\\d+`, 'i').test(branch);
+            const magicWord = new RegExp(
+              `\\b(close[sd]?|fix(e[sd])?|resolve[sd]?)\\s+${prefix}-\\d+`,
+              'i',
+            ).test(text);
+            if (branchHasId || magicWord) {
+              core.info('Linked to a Linear issue ✔');
+              return;
+            }
+            core.setFailed(
+              `No linked Linear issue. Branch from Linear's "Copy git branch name" ` +
+              `(embeds ${prefix}-###), or add "Closes ${prefix}-###" to the PR body — ` +
+              'one line per ticket, never a range. Add the "no-ticket" label to bypass.',
+            );
