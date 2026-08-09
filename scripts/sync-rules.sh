@@ -162,12 +162,15 @@ echo "   ✓ scripts/auto-pr-body.mjs"
 
 # ─── Required-CI workflows ─────────────────────────────────────────────────
 # Universal gates declared in AGENTS.md → "Required CI Checks".
-# typecheck + lint apply to every tier. build applies to standard + critical
-# and can be deleted in minimal-tier projects (the workflow comment says so).
+# typecheck + lint apply to every tier. build + test apply to standard +
+# critical and can be deleted in minimal-tier projects (the workflow comments
+# say so). linear-link-check keeps PRs tied to a Linear issue so the issue
+# auto-transitions on merge; it assumes the `REV-` ticket prefix (see the
+# TICKET_PREFIX env var in that file).
 # Always overwrite — these files are template-owned, not project-owned. Local
 # tweaks belong in a project-specific *.yml alongside, or in
 # Project-Specific Context with the rationale.
-for wf in typecheck.yml lint.yml build.yml; do
+for wf in typecheck.yml lint.yml build.yml test.yml linear-link-check.yml; do
   curl -fsSL "$TEMPLATE_RAW/.github/workflows/$wf" -o ".github/workflows/$wf"
   echo "   ✓ workflows/$wf"
 done

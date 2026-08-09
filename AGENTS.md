@@ -123,6 +123,8 @@ The shared destination is the `claude_task_log` table in the brain Supabase. Eac
 
 Every project declares a **Tier** in its Identity section. The tier defines which checks must pass before a PR can merge. Don't merge a PR while a required check is failing or pending — that's the whole point of declaring a tier.
 
+> **Today these are conventions, not machine-enforced gates.** Making a check genuinely block a merge requires GitHub branch protection, which is unavailable on the plans our repos currently sit on — see "Enabling branch protection" below. Until that changes, nothing stops a red PR from being merged except the person merging it. Treat the table as binding on you personally.
+
 | Check | `minimal` | `standard` *(default)* | `critical` |
 |---|:-:|:-:|:-:|
 | **Typecheck** (`tsc --noEmit`) | ✅ | ✅ | ✅ |
@@ -141,19 +143,25 @@ Every project declares a **Tier** in its Identity section. The tier defines whic
 
 ### Starter workflows
 
-The template ships three universal workflows under `.github/workflows/`:
+The template ships these workflows under `.github/workflows/`, and `sync-rules.sh` installs all of them:
 
 - `typecheck.yml` — runs `tsc --noEmit` (or the `type-check` script if defined)
 - `lint.yml` — runs the project's `lint` npm script
 - `build.yml` — runs the project's `build` npm script
+- `test.yml` — runs `npm test`; passes with a notice when no `test` script exists, since the tier table requires unit tests only *if any exist*
+- `linear-link-check.yml` — fails a PR with no linked Linear issue, so the issue auto-transitions on merge. Assumes the `REV-` ticket prefix; change `TICKET_PREFIX` in that file for a project on a different Linear team
 
-These cover `standard` for any TypeScript + npm project. The `unit tests` check uses the same `build.yml` job pattern — add a `test.yml` alongside if/when the project has tests. E2E and coverage workflows are project-specific and not shipped by the template; add them when the project moves to `critical`.
+Together these cover `standard` for any TypeScript + npm project. E2E and coverage workflows are project-specific and not shipped by the template; add them when the project moves to `critical`.
 
 If your project uses a non-npm toolchain (Bun, pnpm, Turbo, etc.), adapt the starter workflows in place and document the override in Project-Specific Context.
 
 ### Enabling branch protection
 
-Workflows that aren't marked as **Required** in GitHub branch protection are advisory only — a developer can still merge a red PR. After the workflows land on `main`, run this once per repo to make them required:
+Workflows that aren't marked as **Required** in GitHub branch protection are advisory only — a developer can still merge a red PR.
+
+> **Status as of 2026-08-08: not currently possible on our repos.** Branch protection and the newer rulesets API both return `403 Upgrade to GitHub Pro or make this repository public` on private repos under both `thezpack` (personal, free) and the `Revex-Agency` org (free). Free tier excludes protected private branches for organizations too, not just personal accounts. The snippet below is correct and will work once the plan supports it — tracked in REV-1208. Don't burn time debugging the 403; it is a billing state, not a misconfiguration.
+
+Once the plan supports it, run this once per repo to make the checks required:
 
 ```bash
 REPO=$(git config --get remote.origin.url | sed -E 's|.+github.com[/:]([^/]+/[^.]+).*|\1|')
@@ -171,7 +179,11 @@ gh api -X PUT "repos/$REPO/branches/main/protection" \
 JSON
 ```
 
-Add `e2e` and `coverage` to `contexts` for `critical` projects. Confirm the check names match the `name:` field at the top of each workflow file — GitHub matches by job name, not file name.
+Add `test` to `contexts` for `standard`+, and `e2e` and `coverage` for `critical`. Add `linear-link-check` if you want the ticket link enforced rather than advisory.
+
+Confirm the check names match the **job's** `name:` field, not the workflow's — GitHub matches on job name, and a job with no `name:` reports under its job key instead. A `contexts` entry that matches nothing does not error: the check simply looks required and enforces nothing.
+
+If the estate ever consolidates under one organization, prefer a single **org-level ruleset** targeting `main` across all repos over per-repo protection: one object to maintain instead of one per project, and new repos are covered at creation rather than at first sync.
 
 ### Tier definitions in plain English
 
@@ -238,93 +250,63 @@ Add `e2e` and `coverage` to `contexts` for `critical` projects. Confirm the chec
 - **Icons:** Lucide React Native
 - **Supabase client:** `@supabase/supabase-js` with the Expo SecureStore adapter for session persistence
 
+**Styling and component-library entries above are starting defaults, not mandates.** A project's `docs/design-system.md` overrides them — see Design System below. The rest of this section (language, forms, state, data fetching, validation) is an engineering standard and does not move with design.
+
 ### Forbidden (both platforms)
 
 - Redux (use Zustand)
 - Moment (use date-fns)
-- Any new UI library without team approval
+- Any new UI or styling library not named in the project's design docs — and where a project has no design docs, not without asking first
 
 ---
 
 ## Design System
 
+**Design is owned per project, not by this template.** Nothing in this file
+specifies what a product looks like — there is no mandated CSS framework,
+component library, type scale, or spacing unit here. Those are design decisions,
+and they belong to whoever owns design on that project.
+
 ### Project design docs
 
-Some projects carry their own design and product documentation. **If any of
+Most projects carry their own design and product documentation. **If any of
 these files exist, read them before implementing UI, workflows, components,
-pages, or features.** They describe this specific product and take precedence
-over both generated suggestions and the universal defaults below:
+pages, or features.** They describe this specific product and are the source of
+truth:
 
 - `docs/product-principles.md` — what the product is for, who uses it, what it optimizes for
 - `docs/design-rules.md` — UX philosophy, brand, interaction rules
 - `docs/design-system.md` — framework, tokens, component conventions
 
-Projects without these files fall through to the universal rules in this
-section. When a project has them, keep them as the source of truth and update
-them there — do not duplicate their contents into this file.
+Their shape and content are the project's call — this template places no
+constraint on either. Update them in place; never copy their contents into this
+file, and never override them from here.
+
+Projects without these files fall through to the universal principles below,
+which are a floor rather than a design system. If a project needs real design
+direction and has no design docs, **ask for them** — do not invent a system and
+do not import one from another project.
 
 ### Universal principles
 
+These hold regardless of which design system a project uses. They exist so that
+whatever system is in place survives implementation; they do not describe a look.
+
 - **Tokens over raw values.** Never hardcode colors, spacing, or font sizes. Use the project's token definitions.
-- **Reuse before build.** Check existing components in `src/components/ui/` (or equivalent) before creating new ones.
+- **Reuse before build.** Check the project's existing component directory before creating anything new.
 - **Semantic naming.** `color-bg-primary`, not `blue-500`. `space-2`, not `8px`.
-- **No emoji in production UI.** Use the icon library.
+- **No emoji in production UI.** Use the project's icon library.
 - **Accessibility is non-negotiable.** Every interactive element needs a label. Color alone never conveys state.
-
-### Styling (Web only)
-
-Styling system: **Tailwind CSS** + **shadcn/ui**
-
-- Tokens: `tailwind.config.ts` — extend with project-specific colors/spacing in `theme.extend`
-- Component styles: co-located with components; primitives come from `components/ui/` (shadcn)
-- Use CSS variables for themeable tokens (shadcn convention — `--background`, `--foreground`, etc.)
-- **Forbidden:**
-  - Inline styles (`style={{ }}`)
-  - Arbitrary values (`text-[14px]`, `bg-[#ff0000]`) — use tokens
-  - Any CSS framework other than Tailwind
-
-### Styling (Mobile only)
-
-Styling system: **NativeWind** (Tailwind for React Native)
-
-- Tokens: `tailwind.config.js` with NativeWind preset — share token names with web where possible
-- **Density-independent pixels** — no `px` units (RN is already DP)
-- **Forbidden:**
-  - Inline `style={{ }}` object literals in JSX — use `className` (NativeWind) or `StyleSheet.create`
-  - Web-only CSS properties (`cursor`, `hover`, etc.)
-  - Absolute positioning without a documented reason
-
-### Typography
-
-- Font family: `<FILL IN>`
-- Scale: 4–6 sizes max. Use tokens (`text-xs`, `text-sm`, etc.).
-- Weights: 400 body, 500 UI labels, 600 headings. No 700+ unless explicitly requested.
-
-### Color
-
-- Use semantic tokens. Never raw hex values in components.
-- Dark mode: `<supported | not supported>`. If supported, every color must have a dark variant.
-
-### Spacing
-
-- 4px base unit. Use tokens (`space-1` = 4px, `space-2` = 8px, `space-4` = 16px, etc.).
-- Never use arbitrary pixel values in production components.
-
-### Components
-
-- Buttons: use `<Button>` from `ui/button.tsx`. Variants: `primary`, `secondary`, `ghost`, `destructive`.
-- Forms: always use `<Form>` + `<FormField>` pattern. Never raw `<input>`.
-- Modals/sheets: use the shared component, never build ad-hoc.
 
 ---
 
 ## Available Design Skills
 
-This project uses agency-standard design skills. New teammates install them via `./scripts/setup-dev-env.sh`. Once installed, they work automatically in Claude Code. Cursor users get the same guidance via `.cursor/rules/design-*.mdc`.
+These skills are **available, not mandatory.** Nothing here obliges you to run one — reach for them when they fit the task and skip them when they don't. A project's own design docs always outrank a skill's opinion.
 
-**Invoke skills proactively when appropriate — don't wait to be asked.**
+New teammates install them via `./scripts/setup-dev-env.sh`. Once installed, they work in Claude Code. Cursor users get the same guidance via `.cursor/rules/design-*.mdc`.
 
-| Skill | When to invoke |
+| Skill | Useful for |
 |---|---|
 | `impeccable` | Building any new UI — page, component, artifact, poster. Ensures distinctive, non-generic output. |
 | `polish` | Before any UI PR. Final-pass fix for alignment, spacing, consistency. |
@@ -340,7 +322,7 @@ This project uses agency-standard design skills. New teammates install them via 
 | `optimize` | Slow, laggy, janky, performance issues. |
 | `animate` | Adding purposeful animations, micro-interactions, motion. |
 
-If the task involves new UI, start with **impeccable**. If it involves finishing existing UI, run **polish** before finishing. If it involves typography, run **typeset**.
+Skills carry generic design opinions. Where one disagrees with the project's design docs, the docs win.
 
 ---
 
@@ -367,13 +349,16 @@ Apply only the subsections matching the declared Surfaces in Identity.
 
 **Host:** Vercel (GitHub-connected — no manual deploys)
 
-- Staging URL: `<FILL IN>`
 - Production URL: `<FILL IN>`
 - Auto-deploy `main` → production
 - Auto-deploy every PR → preview URL (Vercel bot posts it to the PR)
 - Domains and environment variables managed in Vercel dashboard
-- Never deploy directly to production without staging verification
+- Verify on the PR preview URL before merging — that preview is the pre-production check
 - Never use `vercel --prod` from local — all production deploys go through a merged PR
+
+**There is no agency staging convention for web.** A `staging` branch or environment is optional and per-project — use one where there's a real need, such as a stable URL to hand a client or a database with safe demo data. Document it in Project-Specific Context if the project has one.
+
+A `staging` branch is **not** a substitute for required status checks. A branch is a pointer to a commit and enforces nothing, so routing work through `staging` does not stop anyone merging a red PR into `main` — only branch protection does that. If a project feeds `staging` by force-pushing from `main`, record the sharp edge in Project-Specific Context: force-push destroys anything on `staging` that isn't already on `main`, so hotfixing there silently loses work.
 
 **Environment variables (Vercel):**
 - `NEXT_PUBLIC_*` vars are baked into the client bundle — never put secrets there
@@ -497,3 +482,7 @@ Supabase is the default backend on every project. Rules below apply whenever the
 - `2026-04-21` — Locked in agency stack defaults: Surfaces array (web / mobile / both), Next.js + Tailwind + shadcn/ui (web), Expo + NativeWind (mobile), Vercel (web host), EAS (mobile host), Supabase (backend). Added Deployment & Preview workflow section and full Supabase conventions section (schema, RLS, Edge Functions, Auth, Storage). — template maintainer
 - `2026-05-15` — Added PR workflow rules: confirm with the user before opening a PR (was opening PRs before the ticket was done), wait for CI/CD checks to pass before moving on, reply to review comments once addressed, comment on any re-opened PR — template maintainer
 - `2026-06-03` — Added Required CI Checks section with three tiers (minimal / standard / critical) declared per-project in the Identity section. Shipped starter workflows for typecheck/lint/build under .github/workflows/, plus a one-shot `gh api` snippet to enable branch protection. Background: behavioral rules around "wait for green checks" were a no-op on repos with no checks. — template maintainer
+- `2026-08-08` — Design system is no longer inherited. Removed the mandated styling system (Tailwind/shadcn/NativeWind), type scale, color, spacing unit, and named component contracts; kept only the hygiene principles that protect whatever system a project uses. `docs/design-*.md` are now the source of truth and are owned per project. Design skills are available, not mandatory. Background: the template was asserting a design system nobody owned or maintained — it still shipped `Font family: <FILL IN>` — so it was neither a real default nor the project's own system. (REV-1207) — template maintainer
+- `2026-08-08` — Shipped `test.yml` and `linear-link-check.yml` and added both to `sync-rules.sh`, so a synced project gets every workflow its tier requires instead of hand-rolling them. `test.yml` passes with a notice when no test script exists, matching the tier table's "if any exist". `linear-link-check.yml` takes the ticket prefix from a `TICKET_PREFIX` env var rather than a buried regex. (REV-1209) — template maintainer
+- `2026-08-08` — Told the truth about enforcement: branch protection is unavailable on our current GitHub plans (403 on both the personal account and the Revex-Agency org), so every check is advisory. Required CI Checks and Enabling branch protection now say so instead of implying a gate that does not exist. (REV-1208) — template maintainer
+- `2026-08-08` — Dropped the implied web staging convention: removed the `Staging URL: <FILL IN>` placeholder, made `staging` an optional per-project environment, and pointed pre-production verification at the Vercel PR preview. A branch enforces nothing, so a staging step cannot deliver "nothing merges without passing checks" — only branch protection can. (REV-1210) — template maintainer
