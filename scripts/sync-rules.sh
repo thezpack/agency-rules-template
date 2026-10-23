@@ -118,6 +118,14 @@ mkdir -p .cursor/rules
 # List of rule files in the template
 rules=(
   "project.mdc"
+  "pull-requests.mdc"
+  "task-logging.mdc"
+)
+
+# Rule files the template no longer ships. Deleted by exact name, before the
+# download below, so a project's own rule files are never touched and a name the
+# template brings back is simply downloaded again.
+retired_rules=(
   "design-impeccable.mdc"
   "design-polish.mdc"
   "design-typeset.mdc"
@@ -131,9 +139,14 @@ rules=(
   "design-delight.mdc"
   "design-optimize.mdc"
   "design-animate.mdc"
-  "pull-requests.mdc"
-  "task-logging.mdc"
 )
+
+for f in "${retired_rules[@]}"; do
+  if [ -f ".cursor/rules/$f" ]; then
+    rm ".cursor/rules/$f"
+    echo "   ✗ removed $f (retired)"
+  fi
+done
 
 for f in "${rules[@]}"; do
   if curl -fsSL "$TEMPLATE_RAW/.cursor/rules/$f" -o ".cursor/rules/$f" 2>/dev/null; then

@@ -14,14 +14,10 @@ fi
 echo "Installing agency-standard Claude Code skills..."
 echo
 
-# ─── Design skill pack (Impeccable by Paul Bakaus) ───────────────────────────
-# This is a bundle of design-quality skills: impeccable, polish, typeset,
-# layout, colorize, clarify, audit, critique, distill, adapt, delight,
-# optimize, animate, and others. See https://impeccable.style
-echo "📐 Installing Impeccable design skills..."
-npx -y skills add pbakaus/impeccable
+# The agency design skills (Impeccable) were removed on 2026-10-23; Sura is
+# rewriting the design rules from scratch.
 
-# ─── Add additional agency-standard skills below ─────────────────────────────
+# ─── Add agency-standard skills below ────────────────────────────────────────
 # Example:
 # echo "🔍 Installing X skill..."
 # npx -y skills add owner/skill-name
@@ -31,5 +27,3 @@ echo "✅ Done."
 echo
 echo "Skills are installed globally at ~/.claude/skills/ and work in every project."
 echo "Restart Claude Code to pick up newly installed skills."
-echo
-echo "Cursor users: design skill rules are already in .cursor/rules/ and load automatically."

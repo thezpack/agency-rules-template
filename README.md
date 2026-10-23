@@ -1,6 +1,6 @@
 # Revex Agency Rules Template
 
-Canonical rules, AI agent instructions, and design-skill guidance that live in **every Revex project**. Works across Claude Code and Cursor. Platform-agnostic — React web, React Native, Node services all use the same template with tagged sections.
+Canonical rules and AI agent instructions that live in **every Revex project**. Works across Claude Code and Cursor. Platform-agnostic — React web, React Native, Node services all use the same template with tagged sections.
 
 ## What's inside
 
@@ -10,8 +10,7 @@ Canonical rules, AI agent instructions, and design-skill guidance that live in *
 ├── CLAUDE.md                     Pointer for Claude Code.
 ├── .cursor/
 │   └── rules/
-│       ├── project.mdc           Pointer for Cursor.
-│       └── design-*.mdc          Per-skill rules mirrored from ~/.claude/skills/
+│       └── project.mdc           Pointer for Cursor.
 └── scripts/
     ├── setup-dev-env.sh          One-time teammate setup (installs Claude Code skills).
     └── sync-rules.sh             Pulls latest template into an existing project.
@@ -72,7 +71,7 @@ one-liner instead — it installs both rules and skills:
 curl -fsSL https://raw.githubusercontent.com/thezpack/agency-rules-template/main/scripts/sync-rules.sh | bash
 ```
 
-**Cursor users:** no setup required — the design rules in `.cursor/rules/` load automatically.
+**Cursor users:** no setup required — the rules in `.cursor/rules/` load automatically.
 
 ## How the pieces fit together
 
@@ -81,8 +80,6 @@ curl -fsSL https://raw.githubusercontent.com/thezpack/agency-rules-template/main
 | `AGENTS.md` | Humans + AI (both tools) | The actual rules. Source of truth. |
 | `CLAUDE.md` | Claude Code (auto-loaded) | Three lines: "see AGENTS.md" |
 | `.cursor/rules/project.mdc` | Cursor (auto-loaded, always) | Pointer to AGENTS.md |
-| `.cursor/rules/design-*.mdc` | Cursor (auto-loaded when relevant) | Design-skill guidance for Cursor users |
-| `~/.claude/skills/` | Claude Code (global) | Actual design skills — installed via setup script |
 
 This split means Claude Code and Cursor users get equivalent behavior without duplicating everything in every repo.
 
@@ -94,13 +91,19 @@ When agency-wide rules evolve (e.g. we adopt a new default framework, or add a P
 2. Commit and push to `main`.
 3. Each project runs `./scripts/sync-rules.sh` when ready to pull the latest. The sync script **preserves** each project's `Project-Specific Context` and `Changelog` sections while refreshing everything else.
 
-## Adding a new design skill
+## Design rules
+
+The agency design rules and design skills were removed on 2026-10-23. Sura is
+rewriting them from scratch; when they land, they go in `AGENTS.md` (Design
+System) and, for any skills, `scripts/setup-dev-env.sh`. `sync-rules.sh` deletes
+the retired `.cursor/rules/design-*.mdc` files from projects it syncs.
+
+## Adding an agency-standard skill
 
 1. `npx skills add <owner>/<skill>` locally to preview.
 2. Add the install command to `scripts/setup-dev-env.sh`.
-3. Generate a Cursor mirror by adding an entry to the skill list in the generator script (see commit history) and regenerating `.cursor/rules/design-<name>.mdc`.
-4. Add a row to the **Available Design Skills** table in `AGENTS.md`.
-5. Commit + teammates run `sync-rules.sh` in their projects.
+3. Say when to use it in `AGENTS.md`.
+4. Commit + teammates run `sync-rules.sh` in their projects.
 
 ## Why `AGENTS.md` and not `CLAUDE.md` as the source of truth?
 
