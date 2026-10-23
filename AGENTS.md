@@ -267,6 +267,9 @@ specifies what a product looks like — there is no mandated CSS framework,
 component library, type scale, or spacing unit here. Those are design decisions,
 and they belong to whoever owns design on that project.
 
+The agency-wide design rules and design skills were removed on 2026-10-23. Sura
+is rewriting them from scratch; until they land, there are no agency design rules.
+
 ### Project design docs
 
 Most projects carry their own design and product documentation. **If any of
@@ -282,47 +285,8 @@ Their shape and content are the project's call — this template places no
 constraint on either. Update them in place; never copy their contents into this
 file, and never override them from here.
 
-Projects without these files fall through to the universal principles below,
-which are a floor rather than a design system. If a project needs real design
-direction and has no design docs, **ask for them** — do not invent a system and
-do not import one from another project.
-
-### Universal principles
-
-These hold regardless of which design system a project uses. They exist so that
-whatever system is in place survives implementation; they do not describe a look.
-
-- **Tokens over raw values.** Never hardcode colors, spacing, or font sizes. Use the project's token definitions.
-- **Reuse before build.** Check the project's existing component directory before creating anything new.
-- **Semantic naming.** `color-bg-primary`, not `blue-500`. `space-2`, not `8px`.
-- **No emoji in production UI.** Use the project's icon library.
-- **Accessibility is non-negotiable.** Every interactive element needs a label. Color alone never conveys state.
-
----
-
-## Available Design Skills
-
-These skills are **available, not mandatory.** Nothing here obliges you to run one — reach for them when they fit the task and skip them when they don't. A project's own design docs always outrank a skill's opinion.
-
-New teammates install them via `./scripts/setup-dev-env.sh`. Once installed, they work in Claude Code. Cursor users get the same guidance via `.cursor/rules/design-*.mdc`.
-
-| Skill | Useful for |
-|---|---|
-| `impeccable` | Building any new UI — page, component, artifact, poster. Ensures distinctive, non-generic output. |
-| `polish` | Before any UI PR. Final-pass fix for alignment, spacing, consistency. |
-| `typeset` | Any typography decision — font choice, hierarchy, sizing, weight. |
-| `layout` | Fixing monotonous grids, inconsistent spacing, weak visual hierarchy. |
-| `colorize` | Designs that feel too monochromatic or lack visual interest. |
-| `clarify` | Improving unclear UX copy, error messages, microcopy, labels. |
-| `audit` | Before shipping — checks accessibility, performance, theming, responsive design. |
-| `critique` | User asks "how does this look?" or wants design feedback. |
-| `distill` | Simplifying cluttered designs — stripping to essence. |
-| `adapt` | Making designs work across different screen sizes, devices, platforms. |
-| `delight` | Adding moments of joy, personality, unexpected touches. |
-| `optimize` | Slow, laggy, janky, performance issues. |
-| `animate` | Adding purposeful animations, micro-interactions, motion. |
-
-Skills carry generic design opinions. Where one disagrees with the project's design docs, the docs win.
+If a project needs design direction and has no design docs, **ask for them** —
+do not invent a system and do not import one from another project.
 
 ---
 
@@ -486,3 +450,4 @@ Supabase is the default backend on every project. Rules below apply whenever the
 - `2026-08-12` — Shipped `test.yml` and `linear-link-check.yml` and added both to `sync-rules.sh`, so a synced project gets every workflow its tier requires instead of hand-rolling them. `test.yml` passes with a notice when no test script exists, matching the tier table's "if any exist". `linear-link-check.yml` takes the ticket prefix from a `TICKET_PREFIX` env var rather than a buried regex. — template maintainer
 - `2026-08-12` — Clarified that CI checks only gate a merge once marked Required in branch protection, and that protected private branches need a paid plan. Required CI Checks and Enabling branch protection now say so instead of implying a gate that may not exist. — template maintainer
 - `2026-08-12` — Dropped the implied web staging convention: removed the `Staging URL: <FILL IN>` placeholder, made `staging` an optional per-project environment, and pointed pre-production verification at the Vercel PR preview. A branch enforces nothing, so a staging step cannot deliver "nothing merges without passing checks" — only branch protection can. — template maintainer
+- `2026-10-23` — Removed the agency design rules: the universal design principles, the design-skill table, `.cursor/rules/design-*.mdc`, and the Impeccable install in `setup-dev-env.sh`. Sura is rewriting them from scratch. `sync-rules.sh` now deletes the retired rule files from synced projects — Zach
